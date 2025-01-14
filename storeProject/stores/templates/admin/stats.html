@@ -1,0 +1,317 @@
+{% extends 'admin/base_site.html' %}
+
+{% block content %}
+<h1 style="text-align: center;">THỐNG KÊ CỦA CỬA HÀNG</h1>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+{% if error_message %}
+    <div style="color: red; font-weight: bold; text-align: center;">
+        {{ error_message }}
+    </div>
+{% endif %}
+
+<form method="get" style="text-align: center;">
+    <label for="store">Cửa hàng:</label>
+    <select name="store" id="store">
+        <option value="">-- Chọn cửa hàng --</option>
+        {% for store in cua_hang_list %}
+        <option value="{{ store.id }}" {% if store.id == selected_store %}selected{% endif %}>{{ store.ten }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="month">Tháng:</label>
+    <input type="month" name="month" id="month" value="{{ selected_month }}">
+
+    <button type="submit" name="filter" value="month">Lọc theo Tháng</button>
+
+    <label for="quarter">Quý:</label>
+    <select name="quarter" id="quarter">
+        <option value="">-- Chọn quý --</option>
+        <option value="1" {% if selected_quarter == "1" %}selected{% endif %}>Quý 1</option>
+        <option value="2" {% if selected_quarter == "2" %}selected{% endif %}>Quý 2</option>
+        <option value="3" {% if selected_quarter == "3" %}selected{% endif %}>Quý 3</option>
+        <option value="4" {% if selected_quarter == "4" %}selected{% endif %}>Quý 4</option>
+    </select>
+    <button type="submit" name="filter" value="quarter">Lọc theo Quý</button>
+
+    <label for="year">Năm:</label>
+    <input type="number" name="year" id="year" value="{{ selected_year }}" min="2000" max="2100">
+
+    <button type="submit" name="filter" value="year">Lọc theo Năm</button>
+</form>
+
+{% if selected_month %}
+    <h2 style="text-align: center;">TỔNG DOANH THU, ĐƠN HÀNG VÀ SẢN PHẨM CỦA CỬA HÀNG THEO THÁNG</h2>
+    <div style="display: flex; justify-content: space-between;">
+    <canvas id="chart-revenue" width="600" height="450"></canvas>
+    <canvas id="chart-orders-products" width="600" height="450"></canvas>
+    </div>
+
+    <script>
+        // Biểu đồ tổng doanh thu
+        var ctxRevenue = document.getElementById('chart-revenue').getContext('2d');
+        var chartDataRevenue = {
+            labels: [{% for item in thong_ke_thang %}'{{ item.thang|date:"F Y" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Tổng doanh thu',
+                data: [{% for item in thong_ke_thang %}{{ item.tong_doanh_thu|floatformat:2 }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                fill: false
+            }]
+        };
+
+        var chartOptionsRevenue = {
+            responsive: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Tháng'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Số tiền (VNĐ)'
+                    },
+                    beginAtZero: true
+                }
+            }
+        };
+
+        var chartRevenue = new Chart(ctxRevenue, {
+            type: 'bar',
+            data: chartDataRevenue,
+            options: chartOptionsRevenue
+        });
+
+        // Biểu đồ tổng đơn hàng và tổng sản phẩm
+        var ctxOrdersProducts = document.getElementById('chart-orders-products').getContext('2d');
+        var chartDataOrdersProducts = {
+            labels: [{% for item in thong_ke_thang %}'{{ item.thang|date:"F Y" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+            datasets: [{
+                label: 'Tổng số đơn hàng',
+                data: [{% for item in thong_ke_thang %}{{ item.tong_so_don_hang }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                fill: false
+            }, {
+                label: 'Tổng số sản phẩm',
+                data: [{% for item in thong_ke_san_pham %}{{ item.tong_so_san_pham }}{% if not forloop.last %},{% endif %}{% endfor %}],
+                borderColor: 'rgba(153, 102, 255, 1)',
+                backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                fill: false
+            }]
+        };
+
+        var chartOptionsOrdersProducts = {
+            responsive: false,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Tháng'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Số lượng'
+                    },
+                    beginAtZero: true
+                }
+            }
+        };
+
+        var chartOrdersProducts = new Chart(ctxOrdersProducts, {
+            type: 'bar',
+            data: chartDataOrdersProducts,
+            options: chartOptionsOrdersProducts
+        });
+    </script>
+
+{% elif selected_quarter %}
+    <h2 style="text-align: center;">TỔNG DOANH THU, ĐƠN HÀNG VÀ SẢN PHẨM CỦA CỬA HÀNG THEO QUÝ</h2>
+<div style="display: flex; justify-content: space-between;">
+<canvas id="chart-revenue-quarter" width="600" height="450"></canvas>
+<canvas id="chart-orders-products-quarter" width="600" height="450"></canvas>
+</div>
+
+<script>
+    // Biểu đồ tổng doanh thu theo quý
+    var ctxRevenueQuarter = document.getElementById('chart-revenue-quarter').getContext('2d');
+    var chartDataRevenueQuarter = {
+        labels: [{% for item in thong_ke_quy %}'{{ item.quy|date:"Y 'Q'Q" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Tổng doanh thu',
+            data: [{% for item in thong_ke_quy %}{{ item.tong_doanh_thu|floatformat:2 }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: false
+        }]
+    };
+
+    var chartOptionsRevenueQuarter = {
+        responsive: false,
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Quý'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Số tiền (VNĐ)'
+                },
+                beginAtZero: true
+            }
+        }
+    };
+
+    var chartRevenueQuarter = new Chart(ctxRevenueQuarter, {
+        type: 'bar',
+        data: chartDataRevenueQuarter,
+        options: chartOptionsRevenueQuarter
+    });
+
+    // Biểu đồ tổng đơn hàng và tổng sản phẩm theo quý
+    var ctxOrdersProductsQuarter = document.getElementById('chart-orders-products-quarter').getContext('2d');
+    var chartDataOrdersProductsQuarter = {
+        labels: [{% for item in thong_ke_quy %}'{{ item.quy|date:"Y 'Q'Q" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Tổng số đơn hàng',
+            data: [{% for item in thong_ke_quy %}{{ item.tong_so_don_hang }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: false
+        }, {
+            label: 'Tổng số sản phẩm',
+            data: [{% for item in thong_ke_san_pham %}{{ item.tong_so_san_pham }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgba(153, 102, 255, 1)',
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            fill: false
+        }]
+    };
+
+    var chartOptionsOrdersProductsQuarter = {
+        responsive: false,
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Quý'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Số lượng'
+                },
+                beginAtZero: true
+            }
+        }
+    };
+
+    var chartOrdersProductsQuarter = new Chart(ctxOrdersProductsQuarter, {
+        type: 'bar',
+        data: chartDataOrdersProductsQuarter,
+        options: chartOptionsOrdersProductsQuarter
+    });
+</script>
+{% elif selected_year %}
+    <h2 style="text-align: center;">TỔNG DOANH THU, ĐƠN HÀNG VÀ SẢN PHẨM CỦA CỬA HÀNG THEO NĂM</h2>
+<div style="display: flex; justify-content: space-between;">
+<canvas id="chart-revenue-year" width="600" height="450"></canvas>
+<canvas id="chart-orders-products-year" width="600" height="450"></canvas>
+</div>
+
+<script>
+    // Biểu đồ tổng doanh thu theo năm
+    var ctxRevenueYear = document.getElementById('chart-revenue-year').getContext('2d');
+    var chartDataRevenueYear = {
+        labels: [{% for item in thong_ke_nam %}'{{ item.nam|date:"Y" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Tổng doanh thu',
+            data: [{% for item in thong_ke_nam %}{{ item.tong_doanh_thu|floatformat:2 }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgba(54, 162, 235, 1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            fill: false
+        }]
+    };
+
+    var chartOptionsRevenueYear = {
+        responsive: false,
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Năm'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Số tiền (VNĐ)'
+                },
+                beginAtZero: true
+            }
+        }
+    };
+
+    var chartRevenueYear = new Chart(ctxRevenueYear, {
+        type: 'bar',
+        data: chartDataRevenueYear,
+        options: chartOptionsRevenueYear
+    });
+
+    // Biểu đồ tổng đơn hàng và tổng sản phẩm theo năm
+    var ctxOrdersProductsYear = document.getElementById('chart-orders-products-year').getContext('2d');
+    var chartDataOrdersProductsYear = {
+        labels: [{% for item in thong_ke_nam %}'{{ item.nam|date:"Y" }}'{% if not forloop.last %},{% endif %}{% endfor %}],
+        datasets: [{
+            label: 'Tổng số đơn hàng',
+            data: [{% for item in thong_ke_nam %}{{ item.tong_so_don_hang }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgba(255, 99, 132, 1)',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            fill: false
+        }, {
+            label: 'Tổng số sản phẩm',
+            data: [{% for item in thong_ke_san_pham %}{{ item.tong_so_san_pham }}{% if not forloop.last %},{% endif %}{% endfor %}],
+            borderColor: 'rgba(153, 102, 255, 1)',
+            backgroundColor: 'rgba(153, 102, 255, 0.2)',
+            fill: false
+        }]
+    };
+
+    var chartOptionsOrdersProductsYear = {
+        responsive: false,
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Năm'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Số lượng'
+                },
+                beginAtZero: true
+            }
+        }
+    };
+
+    var chartOrdersProductsYear = new Chart(ctxOrdersProductsYear, {
+        type: 'bar',
+        data: chartDataOrdersProductsYear,
+        options: chartOptionsOrdersProductsYear
+    });
+</script>
+{% endif %}
+
+{% endblock %}
