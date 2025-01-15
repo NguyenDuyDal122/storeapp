@@ -27,11 +27,16 @@ class CuaHangSerializer(serializers.ModelSerializer):
         model = CuaHang
         fields = '__all__'
 
+class DanhMucSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DanhMuc
+        fields = '__all__'
+
 class SanPhamSerializer(serializers.ModelSerializer):
     anh_san_pham = serializers.SerializerMethodField(source='anh_san_pham')
+    danh_muc = serializers.PrimaryKeyRelatedField(queryset=DanhMuc.objects.all())  # Cho phép chọn danh mục từ danh sách có sẵn
 
     def get_anh_san_pham(self, pro):
-
         if pro.anh_san_pham:
             request = self.context.get('request')
             if request:
@@ -42,19 +47,28 @@ class SanPhamSerializer(serializers.ModelSerializer):
         model = SanPham
         fields = '__all__'
 
-class DonHangSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DonHang
-        fields = '__all__'
-
 class GioHangSerializer(serializers.ModelSerializer):
     class Meta:
         model = GioHang
         fields = '__all__'
 
 class SanPhamGioHangSerializer(serializers.ModelSerializer):
+    san_pham = SanPhamSerializer() # Hiển thị chi tiết sản phẩm trong giỏ hàng
+
     class Meta:
         model = SanPhamGioHang
+        fields = '__all__'
+
+class DonHangSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DonHang
+        fields = '__all__'
+
+class SanPhamDonHangSerializer(serializers.ModelSerializer):
+    san_pham = SanPhamSerializer() # Hiển thị chi tiết sản phẩm trong đơn hàng
+
+    class Meta:
+        model = SanPhamDonHang
         fields = '__all__'
 
 class DanhGiaSanPhamSerializer(serializers.ModelSerializer):
@@ -67,19 +81,14 @@ class DanhGiaNguoiBanSerializer(serializers.ModelSerializer):
         model = DanhGiaNguoiBan
         fields = '__all__'
 
-class SanPhamDonHangSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SanPhamDonHang
-        fields = '__all__'
-
-class DanhMucSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = DanhMuc
-        fields = '__all__'
-
 class TinNhanSerializer(serializers.ModelSerializer):
     class Meta:
         model = TinNhan
+        fields = '__all__'
+
+class ThongKeDoanhThuSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ThongKeDoanhThu
         fields = '__all__'
 
 class ThongKeDonHangVaSanPhamSerializer(serializers.ModelSerializer):

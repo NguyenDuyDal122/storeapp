@@ -99,6 +99,39 @@ class SanPhamGioHang(models.Model):
         unique_together = ('gio_hang', 'san_pham')
 
 
+# Don hang
+class DonHang(models.Model):
+    PHUONG_THUC_THANH_TOAN = [
+        ('cod', 'Thanh toan khi nhan hang'),
+        ('paypal', 'PayPal'),
+        ('stripe', 'Stripe'),
+        ('zalo', 'Zalo Pay'),
+        ('momo', 'MoMo'),
+    ]
+    nguoi_dung = models.ForeignKey(NguoiDung, on_delete=models.CASCADE, related_name='don_hang')  # Nguoi dung
+    ngay_tao = models.DateTimeField(auto_now_add=True)  # Ngay tao
+    phuong_thuc_thanh_toan = models.CharField(max_length=20, choices=PHUONG_THUC_THANH_TOAN)  # Phuong thuc thanh toan
+    tong_tien = models.DecimalField(max_digits=10, decimal_places=2)  # Tong tien
+    da_thanh_toan = models.BooleanField(default=False)  # Trang thai thanh toan
+
+    def __str__(self):
+        return f"Don hang #{self.id} boi {self.nguoi_dung.username}"
+
+
+# San pham trong don hang
+class SanPhamDonHang(models.Model):
+    don_hang = models.ForeignKey(DonHang, on_delete=models.CASCADE, related_name='san_pham')  # Don hang
+    san_pham = models.ForeignKey(SanPham, on_delete=models.SET_NULL, null=True)  # San pham
+    so_luong = models.PositiveIntegerField()  # So luong
+    gia = models.DecimalField(max_digits=10, decimal_places=2)  # Gia
+
+    def __str__(self):
+        return f"{self.so_luong} x {self.san_pham.ten} (Don hang #{self.don_hang.id})"
+
+    class Meta:
+        unique_together = ('don_hang', 'san_pham')
+
+
 # Danh gia san pham
 class DanhGiaSanPham(models.Model):
     san_pham = models.ForeignKey(SanPham, on_delete=models.CASCADE, related_name='danh_gia')  # San pham
@@ -129,39 +162,6 @@ class DanhGiaNguoiBan(models.Model):
         unique_together = ('nguoi_ban', 'nguoi_dung')
 
 
-# Don hang
-class DonHang(models.Model):
-    PHUONG_THUC_THANH_TOAN = [
-        ('cod', 'Thanh toan khi nhan hang'),
-        ('paypal', 'PayPal'),
-        ('stripe', 'Stripe'),
-        ('zalo', 'Zalo Pay'),
-        ('momo', 'MoMo'),
-    ]
-    nguoi_dung = models.ForeignKey(NguoiDung, on_delete=models.CASCADE, related_name='don_hang')  # Nguoi dung
-    ngay_tao = models.DateTimeField(auto_now_add=True)  # Ngay tao
-    phuong_thuc_thanh_toan = models.CharField(max_length=20, choices=PHUONG_THUC_THANH_TOAN)  # Phuong thuc thanh toan
-    tong_tien = models.DecimalField(max_digits=10, decimal_places=2)  # Tong tien
-    da_thanh_toan = models.BooleanField(default=False)  # Trang thai thanh toan
-
-    def __str__(self):
-        return f"Don hang #{self.id} boi {self.nguoi_dung.username}"
-
-
-# San pham trong don hang
-class SanPhamDonHang(models.Model):
-    don_hang = models.ForeignKey(DonHang, on_delete=models.CASCADE, related_name='san_pham')  # Don hang
-    san_pham = models.ForeignKey(SanPham, on_delete=models.CASCADE)  # San pham
-    so_luong = models.PositiveIntegerField()  # So luong
-    gia = models.DecimalField(max_digits=10, decimal_places=2)  # Gia
-
-    def __str__(self):
-        return f"{self.so_luong} x {self.san_pham.ten} (Don hang #{self.don_hang.id})"
-
-    class Meta:
-        unique_together = ('don_hang', 'san_pham')
-
-
 # Tin nhan chat (tich hop Firebase)
 class TinNhan(models.Model):
     nguoi_gui = models.ForeignKey(NguoiDung, on_delete=models.CASCADE, related_name='tin_nhan_gui')  # Nguoi gui
@@ -171,6 +171,19 @@ class TinNhan(models.Model):
 
     def __str__(self):
         return f"Tin nhan tu {self.nguoi_gui.username} den {self.nguoi_nhan.username}"
+
+
+class ThongKeDoanhThu(models.Model):
+    cua_hang = models.ForeignKey(CuaHang, on_delete=models.CASCADE, related_name='thong_ke_doanh_thu')
+    danh_muc = models.ForeignKey(DanhMuc, on_delete=models.CASCADE, related_name='thong_ke_doanh_thu')
+    san_pham = models.ForeignKey(SanPham, on_delete=models.CASCADE, related_name='thong_ke_doanh_thu')
+    so_luong = models.PositiveIntegerField(default=0)
+    gia = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    ngay_thanh_toan = models.DateTimeField()
+    tong_doanh_thu = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+
+    def __str__(self):
+        return f"Doanh thu từ {self.san_pham.ten} - {self.cua_hang.ten} vào {self.ngay_thanh_toan.strftime('%d/%m/%Y')}"
 
 
 class ThongKeDonHangVaSanPhamCuaHang(models.Model):
