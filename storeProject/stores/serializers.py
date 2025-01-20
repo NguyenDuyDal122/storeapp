@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 
 class NguoiDungSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField(source='avatar')
 
     class Meta:
         model  = NguoiDung
@@ -21,6 +22,13 @@ class NguoiDungSerializer(serializers.ModelSerializer):
         user.save()
 
         return user
+
+    def get_avatar(self, user):
+        if user.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri('/static/%s' % user.avatar.name)
+            return '/static/%s' % user.avatar.name
 
 class CuaHangSerializer(serializers.ModelSerializer):
     class Meta:

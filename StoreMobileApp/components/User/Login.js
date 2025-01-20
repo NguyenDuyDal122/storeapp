@@ -1,88 +1,49 @@
-// LoginScreen.js
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { useContext, useState } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { TextInput } from 'react-native-gesture-handler';
+import MyContext from '../../configs/MyContext';
 
 const Login = ({ navigation }) => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [user, dispatch] = useContext(MyContext);
 
-  const handleLogin = () => {
-    // Xử lý đăng nhập
-    console.log('Email:', email);
-    console.log('Password:', password);
-    // Thêm logic điều hướng hoặc xác thực tại đây
+  const login = () => {
+    if (username === 'admin' && password === '123') {
+      dispatch({
+        type: "login",
+        payload: {
+          username: "admin"
+        }
+      });
+
+      navigation.navigate("Home");
+    } else {
+      alert("Sai tên đăng nhập hoặc mật khẩu!");
+    }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Đăng Nhập</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
+    <View style={{ padding: 20 }}>
+      <Text>Đăng Nhập</Text>
+      <TextInput 
+        value={username} 
+        onChangeText={t => setUsername(t)} 
+        placeholder="Tên Đăng Nhập..." 
+        style={{ borderWidth: 1, marginVertical: 10, padding: 8 }} 
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Mật khẩu"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
+      <TextInput 
+        value={password} 
+        onChangeText={t => setPassword(t)} 
+        secureTextEntry={true} 
+        placeholder="Mật Khẩu..." 
+        style={{ borderWidth: 1, marginVertical: 10, padding: 8 }} 
       />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Đăng Nhập</Text>
-      </TouchableOpacity>
-      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.link}>Chưa có tài khoản? Đăng ký</Text>
+      <TouchableOpacity onPress={login} style={{ backgroundColor: 'blue', padding: 10 }}>
+        <Text style={{ color: 'white', textAlign: 'center' }}>Đăng Nhập</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    padding: 20,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    marginBottom: 15,
-    backgroundColor: '#fff',
-  },
-  button: {
-    width: '100%',
-    height: 50,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    marginBottom: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  link: {
-    color: '#4CAF50',
-    marginTop: 10,
-  },
-});
 
 export default Login;

@@ -19,7 +19,7 @@ class NguoiDung(AbstractUser):
     ]
 
     vai_tro = models.CharField(max_length=20, choices=VAI_TRO, default='user')  # Vai tro
-    avatar = CloudinaryField('avatar', null=True, blank=True)
+    avatar = models.ImageField(upload_to='avatar/%Y/%m', blank=True, null=True)
     gioi_tinh = models.CharField(max_length=10, choices=GIOI_TINH, blank=True, null=True)  # Gioi tinh
     da_xac_minh = models.BooleanField(default=False)  # Trang thai xac minh (cho nguoi ban)
 

@@ -80,6 +80,14 @@ class NguoiDungAdmin(admin.ModelAdmin):
     list_display = ('username', 'email', 'vai_tro', 'da_xac_minh')  # Hiển thị các trường quan trọng
     list_filter = ('vai_tro', 'da_xac_minh')  # Lọc theo vai trò và trạng thái xác minh
     search_fields = ('username', 'email')  # Tìm kiếm theo tên người dùng hoặc email
+    readonly_fields = ['img']
+
+    def img(self, user):
+        if user:
+            return mark_safe(
+                '<img src="/static/{url}" width="120" />' \
+                    .format(url=user.avatar.name)
+            )
 
 
 class CuaHangAdmin(admin.ModelAdmin):

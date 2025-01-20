@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const HOST = 'http://192.168.1.12:8000';  // Địa chỉ IP máy tính của bạn
+const HOST = 'https://duydal.pythonanywhere.com';  // Địa chỉ IP máy tính của bạn
 
 export const endpoints = {
     'cua-hang': '/cua-hang/',
@@ -13,7 +13,8 @@ export const endpoints = {
     'san-pham': '/san-pham/',
     'sanpham-donhang': '/sanpham-donhang/',
     'sanpham-giohang': '/sanpham-giohang/',
-    'tin-nhan': '/tin-nhan/'
+    'tin-nhan': '/tin-nhan/',
+    'login': '/o/token/'
 }
 
 export const authApi = () => {

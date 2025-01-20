@@ -1,20 +1,49 @@
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { NavigationContainer } from '@react-navigation/native';
-import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
 import Login from './components/User/Login';
 import Home from './components/Home/Home';
+import MyContext from './configs/MyContext';
+import { useReducer } from 'react';
+import MyUserReducer from './reducers/MyUserReducer';
+import Logout from './components/User/Logout';
 
 const Drawer = createDrawerNavigator();
 
-export default function App() {
+const App = () => {
+  const [user, dispatch] = useReducer(MyUserReducer, null);
+
   return (
-    <NavigationContainer>
-      <Drawer.Navigator initialRouteName='Home'>
-        <Drawer.Screen name='Home' component={Home} />
-        <Drawer.Screen name='Login' component={Login} />
-      </Drawer.Navigator>
-    </NavigationContainer>
+    <MyContext.Provider value={[user, dispatch]}>
+      <NavigationContainer>
+        <Drawer.Navigator
+          screenOptions={({ navigation }) => ({
+            headerRight: () => <Logout navigation={navigation} />,
+          })}
+        >
+          {user === null ? (
+            <Drawer.Screen 
+              name="Login" 
+              component={Login} 
+              options={{ title: 'Đăng Nhập' }} 
+            />
+          ) : (
+            <>
+              <Drawer.Screen 
+                name="Home" 
+                component={Home} 
+                options={{ title: 'Trang Chủ' }} 
+              />
+              <Drawer.Screen 
+                name={user.username} 
+                component={Home} 
+                options={{ title: user.username }} 
+              />
+            </>
+          )}
+        </Drawer.Navigator>
+      </NavigationContainer>
+    </MyContext.Provider>
   );
 }
 
@@ -26,3 +55,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 });
+
+export default App;
