@@ -1,4 +1,4 @@
-
+from django.db.models import Avg
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from stores.models import *
@@ -7,42 +7,49 @@ from stores import serializers, paginators
 from django.shortcuts import get_object_or_404
 
 
+# ViewSet quản lý người dùng
 class NguoiDungViewSet(viewsets.ViewSet, generics.CreateAPIView):
-    queryset = NguoiDung.objects.filter(is_active=True).all()
-    serializer_class = serializers.NguoiDungSerializer
-    parser_classes = [parsers.MultiPartParser]
+    queryset = NguoiDung.objects.filter(is_active=True).all()  # Lọc người dùng đang hoạt động
+    serializer_class = serializers.NguoiDungSerializer  # Chọn serializer cho người dùng
+    parser_classes = [parsers.MultiPartParser]  # Cho phép tải lên file
 
+    # Liệt kê tất cả người dùng
     def list(self, request):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+        queryset = self.get_queryset()  # Lấy tất cả người dùng
+        serializer = self.get_serializer(queryset, many=True)  # Serialize dữ liệu người dùng
         return Response(serializer.data)
 
+    # Kiểm tra quyền hạn của người dùng cho các hành động
     def get_permissions(self):
-        if self.action == 'create_store':
-            return [permissions.IsAuthenticated()]
-        return [permissions.AllowAny()]
+        if self.action == 'create_store':  # Kiểm tra quyền khi tạo cửa hàng
+            return [permissions.IsAuthenticated()]  # Cần người dùng đã xác thực
+        return [permissions.AllowAny()]  # Các hành động khác có thể truy cập công khai
 
+    # API lấy thông tin người dùng hiện tại
     @action(methods=['get'], url_name='current-user', detail=False)
     def current_user(self, request):
         return Response(serializers.NguoiDungSerializer(request.user).data)
 
-class CuaHangViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = CuaHang.objects.filter(active=True).all()
-    serializer_class = serializers.CuaHangSerializer
 
+# ViewSet quản lý cửa hàng
+class CuaHangViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = CuaHang.objects.filter(active=True).all()  # Lọc cửa hàng đang hoạt động
+    serializer_class = serializers.CuaHangSerializer  # Chọn serializer cho cửa hàng
+
+    # Tạo cửa hàng cho người bán
     @action(methods=['post'], detail=False, url_path='create-store')
     def create_store(self, request):
-        user = request.user
+        user = request.user  # Lấy thông tin người dùng hiện tại
 
-        # Kiểm tra nếu người dùng có vai trò là người bán và đã được xác minh
+        # Kiểm tra vai trò và xác minh của người dùng
         if user.vai_tro != 'seller' or not user.da_xac_minh:
             return Response({'detail': 'Bạn không có quyền tạo cửa hàng'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Kiểm tra xem người dùng đã có cửa hàng hay chưa
+        # Kiểm tra nếu người dùng đã có cửa hàng
         if hasattr(user, 'cua_hang'):
             return Response({'detail': 'Bạn đã có cửa hàng'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Lấy dữ liệu cửa hàng từ request
+        # Lấy thông tin cửa hàng từ request
         store_data = request.data
         store_name = store_data.get('name')
         store_description = store_data.get('description')
@@ -60,29 +67,35 @@ class CuaHangViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         return Response(serializers.CuaHangSerializer(cua_hang).data, status=status.HTTP_201_CREATED)
 
-class DanhMucViewSet(viewsets.ViewSet, generics.ListAPIView):
-    queryset = DanhMuc.objects.all()
-    serializer_class = serializers.DanhMucSerializer
 
+# ViewSet quản lý danh mục sản phẩm
+class DanhMucViewSet(viewsets.ViewSet, generics.ListAPIView):
+    queryset = DanhMuc.objects.all()  # Lấy tất cả danh mục
+    serializer_class = serializers.DanhMucSerializer  # Chọn serializer cho danh mục
+
+    # API lấy sản phẩm trong một danh mục
     @action(methods=['get'], detail=True)
     def sanpham(self, request, pk):
-        sanpham = self.get_object().san_pham.all()
+        sanpham = self.get_object().san_pham.all()  # Lấy tất cả sản phẩm trong danh mục
 
-        return Response(serializers.SanPhamSerializer(sanpham, many = True, context={'request':request}).data, status=status.HTTP_200_OK)
+        return Response(serializers.SanPhamSerializer(sanpham, many=True, context={'request': request}).data, status=status.HTTP_200_OK)
 
+
+# ViewSet quản lý sản phẩm
 class SanPhamViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
-    queryset = SanPham.objects.filter(active=True).all()
-    serializer_class = serializers.SanPhamSerializer
-    pagination_class = paginators.SanPhamPaginator
+    queryset = SanPham.objects.filter(active=True).all()  # Lọc các sản phẩm đang hoạt động
+    serializer_class = serializers.SanPhamSerializer  # Chọn serializer cho sản phẩm
+    pagination_class = paginators.SanPhamPaginator  # Phân trang sản phẩm
 
+    # API tạo sản phẩm mới
     def create(self, request, *args, **kwargs):
-        user = request.user
+        user = request.user  # Lấy thông tin người dùng hiện tại
 
-        # Kiểm tra xem người dùng có vai trò là người bán không
+        # Kiểm tra người dùng có quyền tạo sản phẩm (người bán)
         if user.vai_tro != 'seller':
             return Response({'detail': 'Bạn không có quyền tạo sản phẩm'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Kiểm tra nếu người bán có cửa hàng không
+        # Kiểm tra người bán đã có cửa hàng chưa
         if not hasattr(user, 'cua_hang'):
             return Response({'detail': 'Bạn phải có cửa hàng để tạo sản phẩm'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -109,8 +122,9 @@ class SanPhamViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIV
 
         return Response(serializers.SanPhamSerializer(san_pham).data, status=status.HTTP_201_CREATED)
 
+    # API cập nhật một phần thông tin sản phẩm
     def partial_update(self, request, *args, **kwargs):
-        user = request.user
+        user = request.user  # Lấy thông tin người dùng
 
         # Lấy sản phẩm cần sửa
         try:
@@ -118,21 +132,22 @@ class SanPhamViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIV
         except SanPham.DoesNotExist:
             return Response({'detail': 'Sản phẩm không tồn tại'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Kiểm tra xem người bán có quyền sửa sản phẩm này không
+        # Kiểm tra quyền sửa sản phẩm
         if san_pham.cua_hang.chu_so_huu != user:
             return Response({'detail': 'Bạn không có quyền sửa sản phẩm này'}, status=status.HTTP_403_FORBIDDEN)
 
-        # Cập nhật dữ liệu sản phẩm từ request (chỉ những trường có trong request sẽ được cập nhật)
+        # Cập nhật sản phẩm
         product_data = request.data
         serializer = self.get_serializer(san_pham, data=product_data, partial=True)  # partial=True cho phép cập nhật một phần
 
         if serializer.is_valid():
-            serializer.save()  # Chỉ lưu các trường được cung cấp trong request
+            serializer.save()  # Lưu các trường được cung cấp
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # API xóa sản phẩm
     def destroy(self, request, *args, **kwargs):
-        user = request.user
+        user = request.user  # Lấy thông tin người dùng
 
         # Lấy sản phẩm cần xóa
         try:
@@ -140,7 +155,7 @@ class SanPhamViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIV
         except SanPham.DoesNotExist:
             return Response({'detail': 'Sản phẩm không tồn tại'}, status=status.HTTP_404_NOT_FOUND)
 
-        # Kiểm tra xem người bán có quyền xóa sản phẩm này không
+        # Kiểm tra quyền xóa sản phẩm
         if san_pham.cua_hang.chu_so_huu != user:
             return Response({'detail': 'Bạn không có quyền xóa sản phẩm này'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -149,6 +164,7 @@ class SanPhamViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIV
 
         return Response({'detail': 'Sản phẩm đã được xóa thành công'}, status=status.HTTP_204_NO_CONTENT)
 
+    # Liệt kê các sản phẩm với các bộ lọc và sắp xếp
     def list(self, request, *args, **kwargs):
         queryset = self.queryset
 
@@ -181,28 +197,73 @@ class SanPhamViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIV
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
+    # So sánh sản phẩm theo danh mục và tên sản phẩm
+    @action(methods=['get'], detail=False, url_path='compare-products')
+    def compare_products(self, request):
+        danh_muc_id = request.query_params.get('danh_muc')
+        ten_san_pham = request.query_params.get('ten_san_pham')
+
+        # Kiểm tra nếu không có thông tin cần thiết
+        if not danh_muc_id or not ten_san_pham:
+            return Response({'detail': 'Vui lòng cung cấp danh mục và tên sản phẩm'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            danh_muc = DanhMuc.objects.get(id=danh_muc_id)  # Lấy danh mục
+        except DanhMuc.DoesNotExist:
+            return Response({'detail': 'Danh mục không tồn tại'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Lọc sản phẩm theo danh mục và tên
+        san_pham_list = SanPham.objects.filter(danh_muc=danh_muc, ten__icontains=ten_san_pham, active=True)
+
+        if not san_pham_list.exists():
+            return Response({'detail': 'Không tìm thấy sản phẩm phù hợp'}, status=status.HTTP_404_NOT_FOUND)
+
+        result = []
+        for san_pham in san_pham_list:
+            # Tính điểm đánh giá trung bình của sản phẩm
+            avg_rating = san_pham.danh_gia_san_pham.aggregate(Avg('diem'))['diem__avg'] or 0
+            result.append({
+                'ten': san_pham.ten,
+                'gia': san_pham.gia,
+                'so_luong_ton': san_pham.so_luong_ton,
+                'cua_hang': san_pham.cua_hang.ten,
+                'danh_gia_trung_binh': round(avg_rating, 2)
+            })
+
+        # Sắp xếp theo giá và đánh giá trung bình
+        result.sort(key=lambda x: (x['gia'], -x['danh_gia_trung_binh']))
+
+        return Response(result, status=status.HTTP_200_OK)
+
+# ViewSet cho Giỏ hàng
 class GioHangViewSet(viewsets.ViewSet, generics.ListAPIView):
+    # Lấy tất cả giỏ hàng
     queryset = GioHang.objects.all()
     serializer_class = serializers.GioHangSerializer
 
+    # Tạo giỏ hàng mới và thêm sản phẩm vào giỏ hàng
     def create(self, request, *args, **kwargs):
         user = request.user
 
-        # Kiểm tra xem người dùng đã có giỏ hàng chưa
+        # Kiểm tra xem người dùng đã có giỏ hàng chưa, nếu chưa thì tạo mới
         gio_hang, created = GioHang.objects.get_or_create(nguoi_dung=user)
 
+        # Lấy danh sách sản phẩm từ request
         product_data = request.data.get('san_pham', [])  # Danh sách sản phẩm (danh sách dict)
 
+        # Lặp qua danh sách sản phẩm và thêm vào giỏ hàng
         for item in product_data:
             san_pham_id = item.get('san_pham')  # ID sản phẩm
             so_luong = item.get('so_luong', 1)  # Số lượng sản phẩm
 
+            # Kiểm tra xem sản phẩm có tồn tại trong hệ thống không
             try:
                 san_pham = SanPham.objects.get(id=san_pham_id)
             except SanPham.DoesNotExist:
                 return Response({'detail': f'Sản phẩm {san_pham_id} không tồn tại'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Kiểm tra số lượng sản phẩm
+            # Kiểm tra số lượng sản phẩm có đủ hay không
             if san_pham.so_luong_ton < so_luong:
                 return Response({'detail': f'Số lượng sản phẩm {san_pham.ten} không đủ'},
                                 status=status.HTTP_400_BAD_REQUEST)
@@ -215,6 +276,7 @@ class GioHangViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         return Response(serializers.GioHangSerializer(gio_hang).data, status=status.HTTP_201_CREATED)
 
+    # Xóa sản phẩm trong giỏ hàng
     def destroy(self, request, *args, **kwargs):
         user = request.user
 
@@ -236,14 +298,17 @@ class GioHangViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         return Response({'detail': 'Sản phẩm đã được xóa khỏi giỏ hàng'}, status=status.HTTP_204_NO_CONTENT)
 
+# ViewSet cho sản phẩm trong giỏ hàng
 class SanPhamGioHangViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = SanPhamGioHang.objects.all()
     serializer_class = serializers.SanPhamGioHangSerializer
 
+# ViewSet cho đơn hàng
 class DonHangViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = DonHang.objects.all()
     serializer_class = serializers.DonHangSerializer
 
+    # Tạo đơn hàng
     def create(self, request, *args, **kwargs):
         user = request.user
         product_data = request.data
@@ -360,6 +425,7 @@ class DonHangViewSet(viewsets.ViewSet, generics.ListAPIView):
 
         return Response(serializers.DonHangSerializer(don_hang).data, status=status.HTTP_201_CREATED)
 
+    # Xóa đơn hàng
     def destroy(self, request, *args, **kwargs):
         user = request.user
 
@@ -383,16 +449,18 @@ class DonHangViewSet(viewsets.ViewSet, generics.ListAPIView):
         # Trả về thông báo thành công
         return Response({'detail': 'Đơn hàng đã được hủy'}, status=status.HTTP_204_NO_CONTENT)
 
+# ViewSet cho sản phẩm trong đơn hàng
 class SanPhamDonHangViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = SanPhamDonHang.objects.all()
     serializer_class = serializers.SanPhamDonHangSerializer
 
-# Danh gia san pham
+# ViewSet cho đánh giá sản phẩm
 class DanhGiaSanPhamViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = DanhGiaSanPham.objects.all()
     serializer_class = serializers.DanhGiaSanPhamSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    # Tạo đánh giá sản phẩm
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def tao_danh_gia(self, serializer):
         san_pham_id = self.request.data.get('san_pham')
@@ -400,6 +468,7 @@ class DanhGiaSanPhamViewSet(viewsets.ViewSet, generics.ListAPIView):
         # Kiểm tra nếu người dùng đã mua sản phẩm mới được đánh giá
         serializer.save(nguoi_dung=self.request.user, san_pham=san_pham)
 
+    # Cập nhật đánh giá sản phẩm
     @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
     def cap_nhat_danh_gia(self, request, pk=None):
         danh_gia = get_object_or_404(DanhGiaSanPham, pk=pk, nguoi_dung=request.user)
@@ -409,24 +478,27 @@ class DanhGiaSanPhamViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # Xóa đánh giá sản phẩm
     @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAuthenticated])
     def xoa_danh_gia(self, request, pk=None):
         danh_gia = get_object_or_404(DanhGiaSanPham, pk=pk, nguoi_dung=request.user)
         danh_gia.delete()
         return Response({'message': 'Đã xoá đánh giá'}, status=status.HTTP_204_NO_CONTENT)
 
-# Danh gia nguoi ban
+# ViewSet cho đánh giá người bán
 class DanhGiaNguoiBanViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = DanhGiaNguoiBan.objects.all()
     serializer_class = serializers.DanhGiaNguoiBanSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    # Tạo đánh giá người bán
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def tao_danh_gia(self, serializer):
         nguoi_ban_id = self.request.data.get('nguoi_ban')
         nguoi_ban = get_object_or_404(CuaHang, id=nguoi_ban_id)
         serializer.save(nguoi_dung=self.request.user, nguoi_ban=nguoi_ban)
 
+    # Cập nhật đánh giá người bán
     @action(detail=True, methods=['patch'], permission_classes=[permissions.IsAuthenticated])
     def cap_nhat_danh_gia(self, request, pk=None):
         danh_gia = get_object_or_404(DanhGiaNguoiBan, pk=pk, nguoi_dung=request.user)
@@ -436,20 +508,24 @@ class DanhGiaNguoiBanViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    # Xóa đánh giá người bán
     @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAuthenticated])
     def xoa_danh_gia(self, request, pk=None):
         danh_gia = get_object_or_404(DanhGiaNguoiBan, pk=pk, nguoi_dung=request.user)
         danh_gia.delete()
         return Response({'message': 'Đã xoá đánh giá'}, status=status.HTTP_204_NO_CONTENT)
 
+# ViewSet cho tin nhắn
 class TinNhanViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = TinNhan.objects.all()
     serializer_class = serializers.TinNhanSerializer
 
+# ViewSet cho thống kê doanh thu
 class ThongKeDoanhThuViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = ThongKeDoanhThu.objects.all()
     serializer_class = serializers.ThongKeDoanhThuSerializer
 
+# ViewSet cho thống kê đơn hàng và sản phẩm của cửa hàng
 class ThongKeDonHangVaSanPhamViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = ThongKeDonHangVaSanPhamCuaHang.objects.all()
     serializer_class = serializers.ThongKeDonHangVaSanPhamSerializer

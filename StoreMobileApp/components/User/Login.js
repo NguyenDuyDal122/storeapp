@@ -8,7 +8,7 @@ const Login = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [user, dispatch] = useContext(MyContext);
 
-  const login = () => {
+  const login = async () => {
     if (username === 'admin' && password === '123') {
       dispatch({
         type: "login",
